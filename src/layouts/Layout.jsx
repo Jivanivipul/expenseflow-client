@@ -14,11 +14,12 @@ export default function Layout({ children }) {
   };
 
   const navLinks = [
-    { to: '/dashboard', label: 'Dashboard' },
-    { to: '/transactions', label: 'Transactions' },
-    { to: '/budgets', label: 'Budgets' },
-    { to: '/reports', label: 'Reports' },
-  ];
+  { to: '/dashboard', label: 'Dashboard' },
+  { to: '/transactions', label: 'Transactions' },
+  { to: '/budgets', label: 'Budgets' },
+  { to: '/debts', label: 'Debts' },
+  { to: '/reports', label: 'Reports' },
+];
 
   const isActive = (path) => location.pathname === path;
 
