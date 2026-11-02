@@ -3,7 +3,14 @@ import Layout from '../layouts/Layout';
 import BudgetModal from '../components/BudgetModal';
 import api from '../services/api';
 
-const currentMonth = () => new Date().toISOString().slice(0, 7); // YYYY-MM
+const currentMonth = () => new Date().toISOString().slice(0, 7);
+
+const safeNum = (v) => {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : 0;
+};
+
+const fmt = (v) => safeNum(v).toLocaleString('en-IN');
 
 const barColor = (status) => {
   if (status === 'exceeded') return 'bg-red-500';
@@ -31,9 +38,11 @@ export default function Budgets() {
     setError('');
     try {
       const res = await api.get('/budgets', { params: { month } });
-      setBudgets(res.data.budgets);
+      const data = res.data?.budgets;
+      setBudgets(Array.isArray(data) ? data : []);
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to load budgets');
+      setBudgets([]);
     } finally {
       setLoading(false);
     }
@@ -91,8 +100,12 @@ export default function Budgets() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {budgets.map((b) => {
-            const pct = Math.min(b.percentage, 100);
+            const pct = Math.min(safeNum(b.percentage), 100);
             const badge = statusLabel(b.status);
+            const limit = safeNum(b.limit);
+            const spent = safeNum(b.spent);
+            const remaining = safeNum(b.remaining);
+
             return (
               <div key={b._id} className="bg-white p-4 rounded shadow">
                 <div className="flex justify-between items-start mb-2">
@@ -106,7 +119,7 @@ export default function Budgets() {
                   </div>
                   <div className="text-right text-sm">
                     <div className="text-gray-500">Limit</div>
-                    <div className="font-bold">₹{b.limit.toLocaleString('en-IN')}</div>
+                    <div className="font-bold">₹{fmt(limit)}</div>
                   </div>
                 </div>
 
@@ -118,11 +131,11 @@ export default function Budgets() {
                 </div>
 
                 <div className="flex justify-between text-sm text-gray-600 mb-3">
-                  <span>Spent: ₹{b.spent.toLocaleString('en-IN')} ({b.percentage}%)</span>
+                  <span>Spent: ₹{fmt(spent)} ({safeNum(b.percentage)}%)</span>
                   <span>
-                    {b.remaining >= 0
-                      ? `Left: ₹${b.remaining.toLocaleString('en-IN')}`
-                      : `Over by ₹${Math.abs(b.remaining).toLocaleString('en-IN')}`}
+                    {remaining >= 0
+                      ? `Left: ₹${fmt(remaining)}`
+                      : `Over by ₹${fmt(Math.abs(remaining))}`}
                   </span>
                 </div>
 
