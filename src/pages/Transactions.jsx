@@ -5,6 +5,7 @@ import api from '../services/api';
 
 export default function Transactions() {
   const [transactions, setTransactions] = useState([]);
+  const [accounts, setAccounts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -14,6 +15,7 @@ export default function Transactions() {
     search: '',
     from: '',
     to: '',
+    account: '',
   });
 
   const [modalOpen, setModalOpen] = useState(false);
@@ -29,6 +31,7 @@ export default function Transactions() {
       if (filters.search) params.search = filters.search;
       if (filters.from) params.from = filters.from;
       if (filters.to) params.to = filters.to;
+      if (filters.account) params.account = filters.account;
       const res = await api.get('/transactions', { params });
       setTransactions(res.data.transactions);
     } catch (err) {
@@ -38,7 +41,19 @@ export default function Transactions() {
     }
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    // Load accounts once for the filter dropdown + table lookup
+    const loadAccounts = async () => {
+      try {
+        const res = await api.get('/accounts');
+        setAccounts(res.data.accounts);
+      } catch {
+        setAccounts([]);
+      }
+    };
+    loadAccounts();
+    load();
+  }, []);
 
   const applyFilters = (e) => {
     e.preventDefault();
@@ -46,7 +61,7 @@ export default function Transactions() {
   };
 
   const resetFilters = () => {
-    setFilters({ type: '', category: '', search: '', from: '', to: '' });
+    setFilters({ type: '', category: '', search: '', from: '', to: '', account: '' });
     setTimeout(load, 0);
   };
 
@@ -73,6 +88,18 @@ export default function Transactions() {
   const openAdd = () => { setEditing(null); setModalOpen(true); };
   const openEdit = (t) => { setEditing(t); setModalOpen(true); };
 
+  const getAccountName = (accountId) => {
+    if (!accountId) return '-';
+    const acc = accounts.find((a) => a._id === accountId);
+    return acc ? acc.name : '-';
+  };
+
+  const getAccountColor = (accountId) => {
+    if (!accountId) return '#9ca3af';
+    const acc = accounts.find((a) => a._id === accountId);
+    return acc ? acc.color : '#9ca3af';
+  };
+
   return (
     <Layout>
       <div className="flex items-center justify-between mb-4">
@@ -86,7 +113,7 @@ export default function Transactions() {
       </div>
 
       {/* Filters */}
-      <form onSubmit={applyFilters} className="bg-white p-4 rounded shadow mb-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+      <form onSubmit={applyFilters} className="bg-white p-4 rounded shadow mb-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
         <select
           value={filters.type}
           onChange={(e) => setFilters({ ...filters, type: e.target.value })}
@@ -96,6 +123,20 @@ export default function Transactions() {
           <option value="income">Income</option>
           <option value="expense">Expense</option>
         </select>
+
+        <select
+          value={filters.account}
+          onChange={(e) => setFilters({ ...filters, account: e.target.value })}
+          className="border rounded p-2"
+        >
+          <option value="">All accounts</option>
+          {accounts.map((a) => (
+            <option key={a._id} value={a._id}>
+              {a.name}
+            </option>
+          ))}
+        </select>
+
         <input
           type="text" placeholder="Category"
           value={filters.category}
@@ -118,7 +159,7 @@ export default function Transactions() {
           onChange={(e) => setFilters({ ...filters, to: e.target.value })}
           className="border rounded p-2"
         />
-        <div className="sm:col-span-2 lg:col-span-5 flex gap-2">
+        <div className="sm:col-span-2 lg:col-span-6 flex gap-2">
           <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
             Apply Filters
           </button>
@@ -142,6 +183,7 @@ export default function Transactions() {
               <tr>
                 <th className="p-3">Date</th>
                 <th className="p-3">Type</th>
+                <th className="p-3">Account</th>
                 <th className="p-3">Category</th>
                 <th className="p-3">Description</th>
                 <th className="p-3">Method</th>
@@ -160,6 +202,15 @@ export default function Transactions() {
                         : 'bg-red-100 text-red-700'
                     }`}>
                       {t.type}
+                    </span>
+                  </td>
+                  <td className="p-3">
+                    <span className="flex items-center gap-2 text-gray-700">
+                      <span
+                        className="w-2 h-2 rounded-full flex-shrink-0"
+                        style={{ backgroundColor: getAccountColor(t.account) }}
+                      />
+                      {getAccountName(t.account)}
                     </span>
                   </td>
                   <td className="p-3">{t.category}</td>

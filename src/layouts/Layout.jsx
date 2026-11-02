@@ -16,6 +16,7 @@ export default function Layout({ children }) {
   const navLinks = [
   { to: '/dashboard', label: 'Dashboard' },
   { to: '/transactions', label: 'Transactions' },
+  { to: '/accounts', label: 'Accounts' },
   { to: '/budgets', label: 'Budgets' },
   { to: '/debts', label: 'Debts' },
   { to: '/reports', label: 'Reports' },

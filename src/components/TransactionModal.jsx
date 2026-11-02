@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import api from '../services/api';
 
 const CATEGORIES = ['Salary', 'Business', 'Freelance', 'Food', 'Rent', 'Transport', 'Shopping', 'Bills', 'Health', 'Education', 'Other'];
 const PAYMENT_METHODS = ['cash', 'upi', 'card', 'netbanking', 'other'];
@@ -11,10 +12,13 @@ export default function TransactionModal({ isOpen, onClose, onSave, initial }) {
     description: '',
     paymentMethod: 'upi',
     date: new Date().toISOString().slice(0, 10),
+    account: '',
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [accounts, setAccounts] = useState([]);
 
+  // Populate form when opening (add or edit)
   useEffect(() => {
     if (initial) {
       setForm({
@@ -24,6 +28,7 @@ export default function TransactionModal({ isOpen, onClose, onSave, initial }) {
         description: initial.description || '',
         paymentMethod: initial.paymentMethod || 'upi',
         date: new Date(initial.date).toISOString().slice(0, 10),
+        account: initial.account || '',
       });
     } else {
       setForm({
@@ -33,10 +38,25 @@ export default function TransactionModal({ isOpen, onClose, onSave, initial }) {
         description: '',
         paymentMethod: 'upi',
         date: new Date().toISOString().slice(0, 10),
+        account: '',
       });
     }
     setError('');
   }, [initial, isOpen]);
+
+  // Load accounts when the modal opens
+  useEffect(() => {
+    if (!isOpen) return;
+    const loadAccounts = async () => {
+      try {
+        const res = await api.get('/accounts');
+        setAccounts(res.data.accounts);
+      } catch {
+        setAccounts([]);
+      }
+    };
+    loadAccounts();
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -52,6 +72,7 @@ export default function TransactionModal({ isOpen, onClose, onSave, initial }) {
       await onSave({
         ...form,
         amount: Number(form.amount),
+        account: form.account || undefined,
       });
       onClose();
     } catch (err) {
@@ -97,6 +118,21 @@ export default function TransactionModal({ isOpen, onClose, onSave, initial }) {
         <datalist id="categories">
           {CATEGORIES.map((c) => <option key={c} value={c} />)}
         </datalist>
+
+        <label className="block text-sm font-medium mb-1">Account</label>
+        <select
+          name="account"
+          value={form.account || ''}
+          onChange={handleChange}
+          className="w-full border rounded p-2 mb-3"
+        >
+          <option value="">— No account —</option>
+          {accounts.map((a) => (
+            <option key={a._id} value={a._id}>
+              {a.name}
+            </option>
+          ))}
+        </select>
 
         <label className="block text-sm font-medium mb-1">Payment Method</label>
         <select
